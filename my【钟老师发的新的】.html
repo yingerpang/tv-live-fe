@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>monibuca webrtc publish tools</title>
+    <!-- 引入样式 -->
+    <!-- import Vue before Element -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="yyt.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div>
+            <el-button type="primary" @click="connect">连接1</el-button>
+            <el-button type="primary" @click="saveData">保存数据</el-button>
+            <el-button type="primary" @click="getData">获取数据</el-button>
+            <el-button type="primary" @click="addTag">添加标签</el-button>
+            <el-button type="primary" @click="delTag">删除标签</el-button>
+            <el-button type="primary" @click="checkUserInTag">检查是否在标签</el-button>
+            <el-button type="primary" @click="checkTagIsCreate">标签是否创建</el-button>
+            
+            <el-button type="primary" @click="TagsInUsers">获取人员</el-button>
+            <el-button type="primary" @click="TagsSetData">存储标签数据</el-button>
+            <el-button type="primary" @click="TagsGetData">获取标签数据</el-button>
+            <el-button type="primary" @click="ClearTags">清理</el-button>
+            
+        </div>
+        <div>
+            <el-button type="primary" @click="push">连接1推流</el-button>
+            <el-button type="primary" @click="stopPush">连接1停止推流</el-button>
+            <el-button type="primary" @click="pausePush">连接1暂停推流</el-button>
+            <el-button type="primary" @click="resumePush">连接1恢复推流</el-button>
+            <el-button type="primary" @click="getPush">连接1获取自身流信息</el-button>
+            <el-button type="primary" @click="getUserPush">连接1获取用户流信息</el-button>
+            <el-button type="primary" @click="SendStreamToTag">连接1发送流信息给tag</el-button>
+            <el-button type="primary" @click="SendStopStreamToTag">连接1发送停止推流流信息给tag</el-button>
+        </div>
+        <div>
+            <el-button type="primary" @click="connect2">连接2</el-button>
+            <el-button type="primary" @click="pull">拉流</el-button>
+            <el-button type="primary" @click="stopPull">停止拉流</el-button>
+        </div>
+        <div>
+            <video ref="video" id="local" width="640" height="480" autoplay controls muted></video>
+            <video ref="video2" id="remote" width="640" height="480" autoplay controls muted></video>
+            
+        </div>
+    </div>
+
+    <script>
+
+        new Vue({
+            el: '#app',
+            data: function () {
+                return {
+                    yyt1: null,
+                    yyt2: null,
+                    yyt1Stream: null,
+                    yyt2Stream: null,
+                }
+            },
+            async mounted() {
+
+            },
+            methods: {
+                addTag(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.AddTagsUser("a", "b", "c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                delTag(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.DelTagsUser("a").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                checkUserInTag(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.CheckUserInTag("a", "b").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                checkTagIsCreate(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.CheckTagIsCreate("a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                TagsInUsers(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.TagsInUsers("a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                    this.yyt1.UserOpera().SendMessageTagBus("12312", "LS")
+                },
+                TagsSetData(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.TagsSetData("123", "a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                TagsGetData(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.TagsGetData("a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                ClearTags(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.ClearTags("a", "b").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                connect() {
+                    this.yyt1 = NewConnect("webrtc1")
+                    this.yyt1.connect()
+                    this.yyt1.onErr = (e) => {
+
+                    }
+                    this.yyt1.open = () => {
+                        console.log("webrtc1 连接成功")
+                    }
+                    this.yyt1.close = () => {
+ 
+                    }
+                    this.yyt1.busMessage = (busMsg) => {
+ 
+                    }
+                    this.yyt1.message = (tagMsg) => {
+ 
+                    }
+                },
+                connect2() {
+                    this.yyt2 = NewConnect("webrtc2")
+                    this.yyt2.connect()
+                    this.yyt2.onErr = (e) => {
+
+                    }
+                    this.yyt2.open = () => {
+                        console.log("webrtc2 连接成功")
+                        const tags = this.yyt2.UserOpera()
+                        tags.AddTagsUser("a", "b", "c").then((result)=>{
+                            console.log(result)
+                        }).catch(e =>{
+                            console.log(e)
+                        })
+                    }
+                    this.yyt2.close = () => {
+ 
+                    }
+                    this.yyt2.busMessage = (busMsg) => {
+ 
+                    }
+                    this.yyt2.message = (tagMsg) => {
+ 
+                    }
+
+
+                },
+                saveData(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.InitUserBean("123").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                getData(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.Data().then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+
+                push(){
+                    const stream = this.yyt1.createStream("webrtc1Stream")
+                    stream.createAudio().then(()=>{
+                        stream.createVideo(1280,720,30).then(()=>{
+                            stream.push().then(() => {
+                                console.log('推流成功', stream)
+                            })
+                            const el = document.getElementById("local")
+                            el.srcObject = stream.MediaStream()
+                    })
+                    })
+                    this.yyt1Stream = stream
+                    //销毁 stream.close()
+                },
+
+                stopPush(){
+                    console.log('停止推流', this.yyt1Stream)
+                    this.yyt1Stream.stopPush()
+                },
+
+                pausePush(){
+                    this.yyt1Stream.changeVideoStatus(false)
+                },
+                resumePush(){
+                    this.yyt1Stream.changeVideoStatus(true)
+                },
+
+                getPush(){
+                    this.yyt1Stream.getStreamInfo().then(result => {
+                        console.log(result)
+                    }).catch(e =>{
+
+                    })
+                },
+
+                getUserPush(){
+                    this.yyt1Stream.getUserStreamInfo("webrtc1", "webrtc2").then(result => {
+                        console.log(result)
+                    }).catch(e =>{
+
+                    })
+                },
+
+                SendStreamToTag(){
+                    this.yyt1Stream.sendStreamToTag("b", "c").then(result => {
+                        console.log(result)
+                    }).catch(e =>{
+
+                    })
+                },
+
+                SendStopStreamToTag(){
+                    this.yyt1Stream.sendStreamStopToTag("b", "c").then(result => {
+                        console.log(result)
+                    }).catch(e =>{
+
+                    })
+                },
+
+                pull(){
+                    const stream = this.yyt2.RemoteStream()
+                    stream.streamMessage = (streamData) => {
+                        console.log(streamData)
+                    }
+                    stream.onTrack = (track, streamId, stream) => {
+                        const el = document.getElementById("remote")
+                        el.srcObject = stream
+                        console.log(streamId)
+                    }
+                    stream.removeTrack = (track, streamId, stream) => {
+                        console.log(streamId)
+                    }
+
+                    stream.pullStream("webrtc1", this.yyt1Stream.Id()).then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                    this.yyt2Stream = stream
+
+                    
+                },
+
+                stopPull(){
+                    this.yyt2Stream.stopPullStream(this.yyt1Stream.Id()).then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                }
+
+            }
+        })
+    </script>
+</body>
+
+</html>

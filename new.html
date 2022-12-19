@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>monibuca webrtc publish tools</title>
+    <!-- 引入样式 -->
+    <!-- import Vue before Element -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js"></script>
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="yyt.min.js"></script>
+    <style>
+        .box{
+            display: flex;
+        }
+        .main{
+            position: relative;
+            width: 640px;
+            height: 480px;
+            margin-right: 10px;
+            display: inline-block;
+        }
+        .main .video{
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            right: 10px;
+            bottom: 80px;
+        }
+        .main .big{
+            width: 100%;
+            height: 100%;
+            position: relative;
+            right: 0;
+            bottom: 0;
+        }
+        .main .mini{
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            right: 10px;
+            bottom: 80px;
+            z-index: 999;
+        }
+        video{
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div>
+            <el-button type="primary" @click="connect">连接1</el-button>
+            <el-button type="primary" @click="saveData">保存数据</el-button>
+            <el-button type="primary" @click="getData">获取数据</el-button>
+            <el-button type="primary" @click="addTag">添加标签</el-button>
+            <el-button type="primary" @click="delTag">删除标签</el-button>
+            <el-button type="primary" @click="checkUserInTag">检查是否在标签</el-button>
+            <el-button type="primary" @click="checkTagIsCreate">标签是否创建</el-button>
+            <el-button type="primary" @click="TagsInUsers">获取人员</el-button>
+            <el-button type="primary" @click="TagsSetData">存储标签数据</el-button>
+            <el-button type="primary" @click="TagsGetData">获取标签数据</el-button>
+            <el-button type="primary" @click="ClearTags">清理</el-button>
+        </div>
+        <div>
+            <el-button type="primary" @click="push">连接1推流</el-button>
+<!--            <el-button type="primary" @click="share">连接1分享屏幕</el-button>-->
+            <el-button type="primary" @click="stopPush">连接1停止推流</el-button>
+            <el-button type="primary" @click="pausePush">连接1暂停推流</el-button>
+            <el-button type="primary" @click="resumePush">连接1回复推流</el-button>
+        </div>
+        <div>
+            <el-button type="primary" @click="connect2">连接2</el-button>
+            <el-button type="primary" @click="pull">拉流</el-button>
+            <el-button type="primary" @click="stopPull">停止拉流</el-button>
+        </div>
+        <div>
+<!--            <el-button type="primary" @click="connect3">分享屏幕</el-button>-->
+            <el-button type="primary" @click="shareCopy">分享屏幕</el-button>
+            <el-button type="primary" @click="stopPushShare">停止分享屏幕</el-button>
+        </div>
+        <div class="box">
+            <div class="main">
+                <video
+                  v-for="item in streamList" :key="item.streamName"
+                  class="video"
+                  :id="item.mediaStream.id"
+                  :class="windowSize(item)"
+                  :controls="windowSize(item) === 'big'"
+                  @click="changeWindow(item.mediaStream.id)"
+                  autoplay muted>
+                </video>
+                <video v-if="streamList.length === 0" class="video big" autoplay controls></video>
+            </div>
+            <video ref="video2" id="remote" width="640" height="480" autoplay controls></video>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: function () {
+                return {
+                    yyt1: null,
+                    yyt2: null,
+                    yyt3: null,
+                    yyt1Stream: null, // 摄像头加麦克风流
+                    yyt2Stream: null,
+                    yyt3Stream: null, // 分享屏幕流
+                    mainStreamName: '', // 主屏流的ID
+                    streamList: [], // 所有流
+
+                }
+            },
+            computed: {
+                all_yyt({ yyt1Stream, yyt3Stream }) {
+                    return { yyt1Stream, yyt3Stream }
+                },
+                windowSize() {
+                    return function (data) {
+                        if(this.streamList.length <= 1) {
+                            return 'big'
+                        } else if(data.mediaStream.id === this.mainStreamName) {
+                            return 'big'
+                        } else {
+                            return 'mini'
+                        }
+                    }
+                }
+            },
+            watch: {
+                mainStreamName: function (val) {
+                    console.log('主屏', val)
+                },
+                streamList: function (val) {
+                    console.log('streamList更新', val)
+                    setTimeout(() => {
+                        val.map(item => {
+                            let dom = document.getElementById(item.mediaStream.id)
+                            dom.srcObject = item.MediaStream()
+                        })
+                    }, 0)
+                }
+            },
+            async mounted() {
+                this.connect()
+            },
+            methods: {
+                 rand(m) {
+                    m = m > 16 ? 16 : m;
+                    var num = Math.random().toString();
+                    if(num.substr(num.length - m, 1) === '0') {
+                        return this.rand(m);
+                    }
+                    return num.substring(num.length - m);
+                },
+                userId() {
+                    var nowTime= new Date().getTime()
+                    //前6位取时间
+                    var nowTimestr = nowTime.toString().substring(7);
+                    //后9位随机
+                    return nowTimestr + this.rand(9);
+                },
+                addTag(){
+                    const tags = this.yyt1.UserOpera()
+                    //用户id
+                    // const teacherId = this.yyt1.id
+                    const teacherId = '999898565483'
+                    // 随机生成房间id
+                    // const RoomId= this.userId()
+                    const RoomId= "352176457654334"
+                    // 身份
+                    const roomUserRole='LS'
+                    //定义tag值，
+                    tags.AddTagsUser(RoomId,teacherId,roomUserRole).then((result)=>{
+                        console.log("result",RoomId,teacherId,roomUserRole,result);
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                delTag(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.DelTagsUser("a").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                checkUserInTag(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.CheckUserInTag("a", "b").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                checkTagIsCreate(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.CheckTagIsCreate("a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                TagsInUsers(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.TagsInUsers("a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                    // 发送消息
+                    this.yyt1.UserOpera().SendMessageTagBus("12312", "LS")
+                },
+                TagsSetData(){
+                    const tags = this.yyt1.UserOpera()
+                    // const RoomId="352176457654334"
+                    // const RoomId= this.yyt1.id
+                    const RoomId= '352176457654334'
+                    // tags.TagsSetData(RoomId,'YS-STREAM','LS',"ROOM-ID").then((result)=>{
+                    tags.TagsSetData(RoomId,`YS-STREAM:${this.yyt1.stream.streamName}`,'LS',"M-STREAM:123456789").then((result)=>{
+                        console.log(result)
+
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                TagsGetData(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.TagsGetData().then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                ClearTags(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.ClearTags("a", "b","c").then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+                connect() {
+                    //一、创建连接生成一个对象，里面包含id(对应的是用户id,也就是教师id)
+                    this.yyt1 = NewConnect('999898565483')
+                    // this.yyt1 = NewConnect(this.userId())
+                    this.yyt1.connect()
+                    this.yyt1.onErr = (e) => {
+                    }
+                    this.yyt1.open = () => {
+                        console.log("webrtc1 连接成功")
+                        // 二、设置tags信息
+                        this.addTag()
+                    }
+                    this.yyt1.close = () => {
+
+                    }
+                    this.yyt1.busMessage = (busMsg) => {
+                        console.log("busMessage",busMsg)
+                    }
+                    this.yyt1.message = (tagMsg) => {//发送消息
+                        console.log("message",tagMsg)
+                        //1、msgType:7  time：60000
+                        //2、发送消息
+                        // this.yyt1.UserOpera().SendMessageTagBus({msgType:"7"}, "XS")
+                    }
+                },
+                connect2() {
+                    this.yyt2 = NewConnect("webrtc2")
+                    this.yyt2.connect()
+                    this.yyt2.onErr = (e) => {
+
+                    }
+                    this.yyt2.open = () => {
+                        console.log("webrtc2 连接成功")
+                        // 二、设置tags信息
+                        this.addTag()
+                    }
+                    this.yyt2.close = () => {
+ 
+                    }
+                    this.yyt2.busMessage = (busMsg) => {
+ 
+                    }
+                    this.yyt2.message = (tagMsg) => {
+ 
+                    }
+                },
+
+                connect3() {
+                    //一、创建连接生成一个对象，里面包含id(对应的是用户id,也就是教师id)
+                    // this.yyt3 = NewConnect(this.userId())
+                    this.yyt3 = NewConnect('999898565483')
+                    console.log('xxxxxxxxxxxx1')
+                    this.yyt3.connect()
+                    console.log('xxxxxxxxxxxx2')
+                    this.yyt3.onErr = (e) => {
+                    }
+                    this.yyt3.open = () => {
+                        console.log("yyt3 连接成功")
+                        console.log('xxxxxxxxxxxx3')
+                        // 二、设置tags信息
+                        // this.addTag()
+                    }
+                    this.yyt3.close = () => {
+
+                    }
+                    this.yyt3.busMessage = (busMsg) => {
+                        console.log("yyt3_busMessage",busMsg)
+                    }
+                    this.yyt3.message = (tagMsg) => {//发送消息
+                        console.log("yyt3_message",tagMsg)
+                    }
+                    this.share()
+                },
+
+                saveData(){
+                    // const tags = this.yyt1.UserOpera()
+                    // tags.InitUserBean('123').then((result)=>{
+                    //     console.log("保存数据",result)
+                    // }).catch(e =>{
+                    //     console.log(e)
+                    // })
+
+                    // 保存数据
+                    const tags = this.yyt1.UserOpera()
+                    // const RoomId= this.yyt1.id
+                    const RoomId= '352176457654334'
+                    const yyt1Stream = this.yyt1Stream
+                    const yyt3Stream = this.yyt3Stream
+                    // const params = `${RoomId},YS-STREAM:${stream.streamName},'LS',M-STREAM:123456789`
+                    const params = {
+                        'RoomId': RoomId,
+                        'type': 'LS',
+                        'teacherId': "999898565483",
+                        'YS_STREAM': yyt1Stream.streamName,
+                    }
+                    if(this.mainStreamName && this.yyt3Stream) {
+                        params['M_STREAM'] = this.mainStreamName
+                    }
+
+                    tags.InitUserBean(params).then((result)=>{
+                        console.log("保存数据",params, result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+
+                },
+                getData(){
+                    const tags = this.yyt1.UserOpera()
+                    tags.Data().then((result)=>{
+                        console.log('获取数据', result)
+                        console.log('获取数据2', JSON.stringify(result))
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+
+                push(){
+                    this.streamBuffering=true;
+                    const stream = this.yyt1.createStream()
+                    console.log("push stream",stream, this.yyt1);
+                    stream.createAudio().then(()=>{
+                        stream.createVideo(1280,720,30).then(()=>{
+                            stream.push().then(() => {
+                                this.saveData()
+                                this.mainStreamName = stream.streamName
+                                this.yyt1.UserOpera().SendMessageTagBus({msgType:"1"}, "XS")
+                                this.streamList.push(stream)
+                                this.streamBuffering=false;
+                                // const mainEl = document.getElementById("local")
+                                // mainEl.srcObject = stream.MediaStream()
+                                // stream.getStreamInfo().then(res => {
+                                //     console.log('getStreamInfo-push', res)
+                                // })
+                            })
+                        })
+                    })
+                    this.yyt1Stream = stream
+                    console.log("this.yyt1Stream",this.yyt1Stream.Id());
+                    //销毁 stream.close()
+                },
+                share() {
+                     if(!this.yyt1Stream) {
+                         alert('请先对链接1推流')
+                         return false
+                     }
+
+                    if(this.yyt3Stream) {
+                        this.yyt3Stream.stopPush()
+                    }
+
+                    const stream = this.yyt3.createStream()
+                    console.log('分享', this.yyt3)
+                    stream.createScreen(1280, 720, 60).then(() => {
+                        stream.push()
+                        console.log("share stream",stream, this.yyt1);
+                        this.yyt3Stream = stream
+                        this.mainStreamName = stream.streamName
+                        this.saveData()
+                        console.log('哈----')
+                        this.yyt3.UserOpera().SendMessageTagBus({msgType:"2"}, "XS")
+                        console.log('哈----2')
+                    }).catch(() => {
+                        // this.yyt3Stream = null
+                    })
+                    // this.yyt3Stream = stream
+
+                },
+
+                // 创建屏幕流
+                shareCopy() {
+                    const stream = this.yyt1.createStream()
+
+                    stream.createScreen(1280, 720, 60).then(() => {
+                        stream.push().then(res => {
+                            console.log("share stream1",stream, this.yyt1);
+                            this.yyt1Stream = stream
+                            this.mainStreamName = stream.streamName
+                            // const mainEl = document.getElementById("share")
+                            // mainEl.srcObject = stream.MediaStream()
+                            this.saveData()
+                            this.yyt1.UserOpera().SendMessageTagBus({msgType:"2"}, "XS")
+                            this.streamList.push(stream)
+                            // stream.getStreamInfo().then(res => {
+                            //     console.log('getStreamInfo-createScreen', res)
+                            // })
+                        })
+                    }).catch(() => {
+                    })
+                },
+
+                stopPush(){
+                    this.yyt1Stream.stopPush()
+                },
+                stopPushShare() {
+                    if(this.streamList[1]) {
+                        console.log('yyt3Stream停止推流1')
+                        this.streamList[1].stopPush()
+                        this.streamList[1].close()
+                        this.streamList[1] = null
+                        this.saveData()
+                        this.yyt1.UserOpera().SendMessageTagBus({msgType:"2"}, "XS")
+                    }
+                },
+
+
+                pausePush(){
+                    this.yyt1Stream.changeVideoStatus(false)
+                },
+
+                resumePush(){
+                    this.yyt1Stream.changeVideoStatus(true)
+                },
+                pull(){
+                    const stream = this.yyt2.RemoteStream()
+                    stream.streamMessage = (streamData) => {
+                        console.log(streamData)
+                    }
+                    stream.onTrack = (track, streamId, stream) => {
+                        const el = document.getElementById("remote")
+                        el.srcObject = stream
+                        console.log("streamId",streamId)
+                    }
+                    stream.removeTrack = (track, streamId, stream) => {
+                        console.log(streamId)
+                    }
+                    console.log(" this.yyt1Stream.Id()",this.yyt1Stream.Id());
+                    stream.pullStream(this.yyt1.id, this.yyt1Stream.Id()).then((result)=>{
+                        console.log("yyt1Stream",result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                    this.yyt2Stream = stream
+                },
+                stopPull(){
+                    this.yyt2Stream.stopPullStream(this.yyt1Stream.Id()).then((result)=>{
+                        console.log(result)
+                    }).catch(e =>{
+                        console.log(e)
+                    })
+                },
+
+                changeWindow(data) {
+                    this.mainStreamName = data
+                    this.saveData()
+                    this.yyt1.UserOpera().SendMessageTagBus({msgType:"2"}, "XS")
+                    setTimeout(() => {
+                        let videoList = document.querySelectorAll('.main video')
+                        console.log('domList', videoList)
+                        for (let i = 0; i < videoList.length; ++i) {
+                            let item = videoList[i];
+                            item.play()
+                        }
+                    }, 100)
+                 }
+
+            }
+        })
+    </script>
+</body>
+
+</html>

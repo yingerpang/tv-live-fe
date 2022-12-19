@@ -1,0 +1,23 @@
+{
+  "name": "bean",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack -p"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "google-protobuf": "^3.21.2",
+    "require": "^2.4.20",
+    "webpack": "4.43.0",
+    "webpack-bundle-analyzer": "3.4.1",
+    "webpack-cli": "3.3.11"
+  },
+  "devDependencies": {
+    "uglifyjs-webpack-plugin": "^2.2.0"
+  }
+}
