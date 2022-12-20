@@ -294,10 +294,83 @@
     .main .member-drawer .member-drawer-content .member-list-box .item .icon-box .icon-camera .icon{
       width: 30px;
     }
+
+    .main .setting-dialog{
+      width: 660px;
+      height: 500px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      background-color: #1D2029;
+    }
+    .main .setting-dialog .dialog-title {
+      display: block;
+      font-weight: 500;
+      font-size: 20px;
+      line-height: 24px;
+      margin: 32px 0 20px 32px;
+    }
+    .main .setting-dialog .dialog-content {
+      flex: 1;
+      padding: 32px;
+      border-top: 1px solid #999;
+    }
+    .main .setting-dialog .dialog-content .radio-box{
+      display: flex;
+      flex-direction: column;
+      margin-top: 20px;
+    }
+    .main .setting-dialog .dialog-content .radio-box label{
+      font-size: 20px;
+      margin: 10px 0;
+    }
+    .main .setting-dialog .dialog-footer{
+      padding: 20px;
+      text-align: right;
+      border-top: 1px solid #999;
+    }
+    .main .setting-dialog .dialog-footer button span{
+      font-weight: bold;
+    }
+    .main .setting-dialog .close-icon{
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+    }
   </style>
   <style>
     .el-drawer{
       background-color: #1D2029;
+    }
+    .el-popover{
+      background-color: rgba(29, 32, 41, 0.7);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .el-popover .popper__arrow {
+      border-left-color: rgba(255, 255, 255, 0.5)!important;
+    }
+    .el-popover .popper__arrow:after{
+      border-left-color: rgba(29, 32, 41, 1)!important;
+    }
+    .drawer-user-operate-list{
+      padding: 4px 0;
+      min-width: 124px;
+    }
+    .drawer-user-operate-list .user-operate-item{
+      cursor: pointer;
+      padding: 0 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #CFD4E6;
+      height: 40px;
+      line-height: 40px;
+    }
+    .drawer-user-operate-list .user-operate-item:hover{
+      background-color: rgba(46, 50, 61, 0.7);
     }
   </style>
 </head>
@@ -352,7 +425,7 @@
         <img class="icon" src="./img/manage-member.svg" alt="">
         <div class="info">管理成员</div>
       </div>
-      <div class="item" @click="checkIn()">
+      <div class="item" @click="showCheckinDialog = true">
         <i class="el-icon-position" style="font-size: 26px;margin-top: 4px"></i>
         <div class="info">签到</div>
       </div>
@@ -367,6 +440,10 @@
             <div class="item" @click="getUserPush()">
               <img class="icon" src="./img/setting.svg" alt="">
               <div class="info">用户流</div>
+            </div>
+            <div class="item" @click="TagsInUsers()">
+              <img class="icon" src="./img/setting.svg" alt="">
+              <div class="info">获取用户</div>
             </div>-->
     </div>
     <div class="footer-item right">
@@ -401,40 +478,59 @@
       <div class="member-drawer-content">
         <div class="member-list-title">成员列表</div>
         <div class="member-list-box">
-          <div class="item">
+          <div class="item" v-for="i in 5">
             <div style="display: flex;align-items: center">
               <img class="cover" src="./img/default-cover.png" alt="">
               <div class="name">测试用户1</div>
-              <div class="type">讲师，我</div>
+              <div class="type">学生</div>
             </div>
-            <div class="icon-box">
-              <div class="icon-voice">
-                <img class="icon" src="./img/mic-on.svg" alt="">
+            <el-popover
+                    class="member-popover"
+                    trigger="hover"
+                    placement="left-start">
+              <div class="icon-box" slot="reference">
+                <div class="icon-voice">
+                  <img class="icon" src="./img/mic-on.svg" alt="">
+                </div>
+                <div class="icon-camera">
+                  <img class="icon" src="./img/camera-on.svg" alt="">
+                </div>
               </div>
-              <div class="icon-camera">
-                <img class="icon" src="./img/camera-on.svg" alt="">
+              <div class="drawer-user-operate-list" solt="content">
+                <div class="user-operate-item">接入连线</div>
+                <div class="user-operate-item">断开连线</div>
+                <div class="user-operate-item">显示</div>
+                <div class="user-operate-item">禁画</div>
+                <div class="user-operate-item">禁言</div>
               </div>
-            </div>
-          </div>
-          <div class="item">
-            <div style="display: flex;align-items: center">
-              <img class="cover" src="./img/default-cover.png" alt="">
-              <div class="name">测试用户2</div>
-              <div class="type">用户</div>
-            </div>
-            <div class="icon-box">
-              <div class="icon-voice">
-                <img class="icon" src="./img/mic-on.svg" alt="">
-              </div>
-              <div class="icon-camera">
-                <img class="icon" src="./img/camera-on.svg" alt="">
-              </div>
-            </div>
+            </el-popover>
           </div>
         </div>
       </div>
     </div>
   </el-drawer>
+  <div v-if="showCheckinDialog" class="setting-dialog">
+    <span class="dialog-title">签到</span>
+    <div class="dialog-content">
+      <div class="info">邀请全体观众签到请选择签到时长</div>
+      <div class="radio-box">
+        <el-radio v-model="checkinRadio" label="1">1分钟</el-radio>
+        <el-radio v-model="checkinRadio" label="2">2分钟</el-radio>
+        <el-radio v-model="checkinRadio" label="3">3分钟</el-radio>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <el-button @click="showCheckinDialog = false">取消</el-button>
+      <el-button type="primary" @click="checkIn()">立即发起</el-button>
+    </div>
+    <i class="close-icon" style="font-size: 26px;margin-top: 4px"></i>
+    <!--    <svg-icon-->
+    <!--      class="close-icon"-->
+    <!--      icon-name="close"-->
+    <!--      size="medium"-->
+    <!--      @click="showCheckinDialog"-->
+    <!--    ></svg-icon>-->
+  </div>
 </div>
 <script>
   new Vue({
@@ -452,7 +548,8 @@
         isCamera:true,
 
         memberDialog: false,
-
+        showCheckinDialog: false,
+        checkinRadio: '1',
       }
     },
     watch: {
@@ -460,18 +557,18 @@
         console.log('监听主屏流变化：', val)
       },
       streamList: function (val) {
-        console.log('streamList更新', val)
+        console.log('streamList更-新', val)
         if(val.length === 0) {
           this.mainStreamID = ''
           this.YSStreamID = ''
         }
 
-        setTimeout(() => {
+        this.$nextTick(() => {
           val.map(item => {
             let dom = document.getElementById(item.mediaStream.id)
             dom.srcObject = item.MediaStream()
           })
-        }, 0)
+        })
       },
       fullScreen: function (val) {
         console.log('屏幕变化',  val)
@@ -693,13 +790,13 @@
         this.saveData('clear').then(() => {
           this.sendMessage({msgType:"2"}, "XS")
         })
-        setTimeout(() => {
+        this.$nextTick(() => {
           let videoList = document.querySelectorAll('.main video')
           for (let i = 0; i < videoList.length; ++i) {
             let item = videoList[i];
             item.play()
           }
-        }, 100)
+        })
       },
       // 删除某一个流
       deleteStream(streamId, notDelYSStream = true) {
@@ -743,6 +840,41 @@
         }).catch(e =>{
 
         })
+      },
+
+      // 获取用户列表
+      TagsInUsers(){
+        const tags = this.yyt1.UserOpera()
+        tags.TagsInUsers("XS").then((result)=>{
+          console.log('获取用户', result)
+        }).catch(e =>{
+          console.log(e)
+        })
+      },
+
+      // 拉流
+      pull(){
+        const stream = this.yyt2.RemoteStream()
+        stream.streamMessage = (streamData) => {
+          console.log(streamData)
+        }
+        stream.onTrack = (track, streamId, stream) => {
+          const el = document.getElementById("remote")
+          el.srcObject = stream
+          console.log(streamId)
+        }
+        stream.removeTrack = (track, streamId, stream) => {
+          console.log(streamId)
+        }
+
+        stream.pullStream("webrtc1", this.yyt1Stream.Id()).then((result)=>{
+          console.log(result)
+        }).catch(e =>{
+          console.log(e)
+        })
+        this.yyt2Stream = stream
+
+
       },
 
       // 发送消息
